@@ -1,0 +1,140 @@
+
+https://dev.classmethod.jp/articles/cloudfront_s3_oac_setup_with_cloudformation/
+
+
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: S3&KMS Stack
+
+Parameters:
+# ------------------------------------------------------------#
+# Parameters
+# ------------------------------------------------------------# 
+  BucketName:
+    Type: String
+
+  IAMUserARN:
+    Type: String
+
+Resources:
+# ------------------------------------------------------------#
+# KMS
+# ------------------------------------------------------------# 
+  KMS:
+    Type: AWS::KMS::Key
+    Properties: 
+      Description: OAC Test
+      Enabled: true
+      KeyPolicy: 
+        Version: '2012-10-17'
+        Statement: 
+          - Sid: Enable IAM User Permissions
+            Effect: Allow
+            Principal: 
+              AWS: !Sub arn:aws:iam::${AWS::AccountId}:root
+            Action: 'kms:*'
+            Resource: '*'
+          - Sid: 'Allow access for Key Administrators'
+            Effect: Allow
+            Principal: 
+              AWS: !Ref IAMUserARN
+            Action: 
+              - 'kms:Create*'
+              - 'kms:Describe*'
+              - 'kms:Enable*'
+              - 'kms:List*'
+              - 'kms:Put*'
+              - 'kms:Update*'
+              - 'kms:Revoke*'
+              - 'kms:Disable*'
+              - 'kms:Get*'
+              - 'kms:Delete*'
+              - 'kms:TagResource'
+              - 'kms:UntagResource'
+              - 'kms:ScheduleKeyDeletion'
+              - 'kms:CancelKeyDeletion'
+              - 'kms:CreateGrant'
+              - 'kms:ListGrants'
+              - 'kms:RevokeGrant'
+            Resource: '*'
+          - Sid: 'Allow use of the key'
+            Effect: Allow
+            Principal: 
+              AWS: !Ref IAMUserARN
+            Action: 
+              - 'kms:Encrypt'
+              - 'kms:Decrypt'
+              - 'kms:ReEncrypt*'
+              - 'kms:GenerateDataKey*'
+              - 'kms:DescribeKey'
+            Resource: '*'
+          - Sid: 'Allow use of the key'
+            Effect: Allow
+            Principal: 
+              Service: 
+                - cloudfront.amazonaws.com
+            Action: 
+              - 'kms:Decrypt'
+              - 'kms:Encrypt'
+              - 'kms:GenerateDataKey*'
+            Resource: '*'
+            Condition: 
+              StringEquals:
+                aws:SourceArn:
+                  - !Join 
+                    - ''
+                    - - !Sub 'arn:aws:cloudfront::${AWS::AccountId}:distribution/'
+                      - !ImportValue CloudFrontID
+      PendingWindowInDays: 7
+
+# ------------------------------------------------------------#
+# S3
+# ------------------------------------------------------------# 
+  S3:
+    Type: AWS::S3::Bucket
+    Properties: 
+      BucketEncryption: 
+        ServerSideEncryptionConfiguration: 
+          - BucketKeyEnabled: true
+            ServerSideEncryptionByDefault:
+              KMSMasterKeyID: !Ref KMS
+              SSEAlgorithm: aws:kms
+      BucketName: !Ref BucketName
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: True
+        BlockPublicPolicy: True
+        IgnorePublicAcls: True
+        RestrictPublicBuckets: True
+
+  S3BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties: 
+      Bucket: !Ref S3
+      PolicyDocument: 
+        Version: "2008-10-17"
+        Statement: 
+          - Sid: "AllowCloudFrontServicePrincipal"
+            Effect: "Allow"
+            Principal: 
+              Service: 
+                - "cloudfront.amazonaws.com"
+            Action: 
+              - "s3:GetObject"
+            Resource: 
+              - !Sub ${S3.Arn}/*
+            Condition: 
+              StringEquals:
+                AWS:SourceArn: 
+                  - !Join 
+                    - ''
+                    - - !Sub 'arn:aws:cloudfront::${AWS::AccountId}:distribution/'
+                      - !ImportValue CloudFrontID
+
+Outputs:
+# ------------------------------------------------------------#
+# Outputs
+# ------------------------------------------------------------# 
+  S3:
+    Value: !GetAtt S3.DomainName
+    Export: 
+      Name: S3
