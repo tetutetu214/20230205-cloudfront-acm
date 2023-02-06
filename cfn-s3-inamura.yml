@@ -3,7 +3,6 @@ https://dev.classmethod.jp/articles/cloudfront_s3_oac_setup_with_cloudformation/
 
 
 AWSTemplateFormatVersion: "2010-09-09"
-
 Description: S3&KMS Stack
 
 Parameters:
