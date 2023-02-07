@@ -1,7 +1,6 @@
 
 https://dev.classmethod.jp/articles/cloudfront_s3_oac_setup_with_cloudformation/
 
-
 AWSTemplateFormatVersion: "2010-09-09"
 Description: S3&KMS Stack
 
@@ -85,49 +84,6 @@ Resources:
                     - - !Sub 'arn:aws:cloudfront::${AWS::AccountId}:distribution/'
                       - !ImportValue CloudFrontID
       PendingWindowInDays: 7
-
-# ------------------------------------------------------------#
-# S3
-# ------------------------------------------------------------# 
-  S3:
-    Type: AWS::S3::Bucket
-    Properties: 
-      BucketEncryption: 
-        ServerSideEncryptionConfiguration: 
-          - BucketKeyEnabled: true
-            ServerSideEncryptionByDefault:
-              KMSMasterKeyID: !Ref KMS
-              SSEAlgorithm: aws:kms
-      BucketName: !Ref BucketName
-      PublicAccessBlockConfiguration:
-        BlockPublicAcls: True
-        BlockPublicPolicy: True
-        IgnorePublicAcls: True
-        RestrictPublicBuckets: True
-
-  S3BucketPolicy:
-    Type: AWS::S3::BucketPolicy
-    Properties: 
-      Bucket: !Ref S3
-      PolicyDocument: 
-        Version: "2008-10-17"
-        Statement: 
-          - Sid: "AllowCloudFrontServicePrincipal"
-            Effect: "Allow"
-            Principal: 
-              Service: 
-                - "cloudfront.amazonaws.com"
-            Action: 
-              - "s3:GetObject"
-            Resource: 
-              - !Sub ${S3.Arn}/*
-            Condition: 
-              StringEquals:
-                AWS:SourceArn: 
-                  - !Join 
-                    - ''
-                    - - !Sub 'arn:aws:cloudfront::${AWS::AccountId}:distribution/'
-                      - !ImportValue CloudFrontID
 
 Outputs:
 # ------------------------------------------------------------#
