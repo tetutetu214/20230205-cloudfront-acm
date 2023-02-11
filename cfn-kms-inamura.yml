@@ -1,0 +1,118 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: KMS Stack
+# ------------------------------------------------------------#
+#  Metadata
+# ------------------------------------------------------------#
+Metadata:
+  "AWS::CloudFormation::Interface":
+    ParameterGroups:
+      - Label:
+          default: "KMS Configuration"
+        Parameters:
+        - S3BucketName
+        - AccessControl
+# ------------------------------------------------------------#
+#  InputParameters
+# ------------------------------------------------------------#
+Parameters:
+  KMSId:
+    Type: String
+    Default: "DEV"
+    Description: KMSId
+
+  UserName:
+    Type: String
+    Default: "CPI-INAMURA"
+    Description: UserName
+
+Resources:
+# ------------------------------------------------------------#
+# KMS
+# ------------------------------------------------------------# 
+  KMSAlias:
+    Type: AWS::KMS::Alias
+    Properties: 
+      AliasName: !Sub alias/cfn-${UserName}
+      TargetKeyId: !Ref KMSKey
+
+  KMSKey:
+    Type: AWS::KMS::Key
+    Properties: 
+      Description: Encryption KMS key
+      Enabled: true
+      KeyPolicy: 
+        Version: '2012-10-17'
+        Id: !Sub cfn-${KMSId}-kms
+        Statement: 
+          - Sid: Enable IAM User Permissions
+            Effect: Allow
+            Principal: 
+              AWS: !Sub arn:aws:iam::${AWS::AccountId}:root
+            Action: 'kms:*'
+            Resource: '*'
+          - Sid: 'Allow access for Key Administrators'
+            Effect: Allow
+            Principal: 
+              AWS: !Sub arn:aws:iam::${AWS::AccountId}:user/${UserName}
+            Action: 
+              - 'kms:Create*'
+              - 'kms:Describe*'
+              - 'kms:Enable*'
+              - 'kms:List*'
+              - 'kms:Put*'
+              - 'kms:Update*'
+              - 'kms:Revoke*'
+              - 'kms:Disable*'
+              - 'kms:Get*'
+              - 'kms:Delete*'
+              - 'kms:TagResource'
+              - 'kms:UntagResource'
+              - 'kms:ScheduleKeyDeletion'
+              - 'kms:CancelKeyDeletion'
+              - 'kms:CreateGrant'
+              - 'kms:ListGrants'
+              - 'kms:RevokeGrant'
+            Resource: '*'
+          - Sid: 'Allow use of the key'
+            Effect: Allow
+            Principal: 
+              AWS: !Sub arn:aws:iam::${AWS::AccountId}:user/${UserName}
+            Action: 
+              - 'kms:Encrypt'
+              - 'kms:Decrypt'
+              - 'kms:ReEncrypt*'
+              - 'kms:GenerateDataKey*'
+              - 'kms:DescribeKey'
+            Resource: '*'
+          # - Sid: 'Allow use of the key'
+          #   Effect: Allow
+          #   Principal: 
+          #     Service: 
+          #       - cloudfront.amazonaws.com
+          #   Action: 
+          #     - 'kms:Decrypt'
+          #     - 'kms:Encrypt'
+          #     - 'kms:GenerateDataKey*'
+          #   Resource: '*'
+          #   Condition: 
+          #     StringEquals:
+          #       aws:SourceArn:
+          #         - !Sub
+          #         - 'arn:aws:cloudfront::${AWS::AccountId}:distribution/${CloudFrontID}'
+          #         - { CloudFrontID: !ImportValue CloudFrontID }
+      PendingWindowInDays: 7
+      Tags: 
+        - Key: UserName
+          Value: !Ref UserName
+# ------------------------------------------------------------#
+#  Outputs
+# ------------------------------------------------------------#
+Outputs:
+  KMSKeyId:
+    Value: !GetAtt KMSKey.KeyId
+    Export: 
+      Name: KMSKeyId
+  KMSArn:
+    Value: !GetAtt KMSKey.Arn
+    Export: 
+      Name: KMSArn
