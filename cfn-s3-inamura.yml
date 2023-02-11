@@ -108,6 +108,30 @@ Resources:
       Tags:
         - Key: "User"
           Value: !Ref TagsName
+
+  S3BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties: 
+      Bucket: !Ref S3Bucket
+      PolicyDocument: 
+        Version: "2008-10-17"
+        Statement: 
+          - Sid: "AllowCloudFrontServicePrincipal"
+            Effect: "Allow"
+            Principal: 
+              Service: 
+                - "cloudfront.amazonaws.com"
+            Action: 
+              - "s3:GetObject"
+            Resource: 
+              - !Sub ${S3Bucket.Arn}/*
+            Condition: 
+              StringEquals:
+                AWS:SourceArn: 
+                  - !Join 
+                    - ''
+                    - - !Sub 'arn:aws:cloudfront::${AWS::AccountId}:distribution/'
+                      - !ImportValue CloudFrontID
 # ------------------------------------------------------------#
 #  Outputs
 # ------------------------------------------------------------#
@@ -116,3 +140,7 @@ Outputs:
     Value: !Ref S3Bucket
     Export:
       Name: cfn-s3-BucketName
+  S3DomainName:
+    Value: !GetAtt S3Bucket.DomainName
+    Export:
+      Name: cfn-s3-DomainName
