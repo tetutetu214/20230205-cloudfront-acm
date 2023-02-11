@@ -1,5 +1,33 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: CloudFront Stack
+# ------------------------------------------------------------#
+#  Metadata
+# ------------------------------------------------------------#
+Metadata:
+  "AWS::CloudFormation::Interface":
+    ParameterGroups:
+      - Label:
+          default: "OriginAccessControl Configuration"
+        Parameters:
+        - OACName
+      - Label:
+          default: "CloudFront Configuration"
+        Parameters:
+
+        - TagsName
+# ------------------------------------------------------------#
+#  InputParameters
+# ------------------------------------------------------------#
+Parameters:
+  OACName:
+    Type: String
+    Default: "cfn-OAC-inamura"
+    Description: OAC Name
+
+  TagsName:
+    Type: String
+    Default: "inamura"
+    Description: UserName
 
 Resources:
 # ------------------------------------------------------------#
@@ -10,7 +38,7 @@ Resources:
     Properties: 
       OriginAccessControlConfig:
         Description: Access Control
-        Name: OAC
+        Name: !Ref OACName
         OriginAccessControlOriginType: s3
         SigningBehavior: always
         SigningProtocol: sigv4
@@ -31,12 +59,15 @@ Resources:
           ViewerProtocolPolicy: allow-all
         Enabled: true
         Origins: 
-          - DomainName: !ImportValue S3
+          - DomainName: !ImportValue cfn-s3-DomainName
             Id: S3
             OriginAccessControlId: !GetAtt OAC.Id
             S3OriginConfig: 
               OriginAccessIdentity: ''
         PriceClass: PriceClass_200
+      Tags:
+        - Key: UserName
+          Value: !Ref TagsName
 
 Outputs:
 # ------------------------------------------------------------#
