@@ -84,22 +84,23 @@ Resources:
               - 'kms:GenerateDataKey*'
               - 'kms:DescribeKey'
             Resource: '*'
-          # - Sid: 'Allow use of the key'
-          #   Effect: Allow
-          #   Principal: 
-          #     Service: 
-          #       - cloudfront.amazonaws.com
-          #   Action: 
-          #     - 'kms:Decrypt'
-          #     - 'kms:Encrypt'
-          #     - 'kms:GenerateDataKey*'
-          #   Resource: '*'
-          #   Condition: 
-          #     StringEquals:
-          #       aws:SourceArn:
-          #         - !Sub
-          #         - 'arn:aws:cloudfront::${AWS::AccountId}:distribution/${CloudFrontID}'
-          #         - { CloudFrontID: !ImportValue CloudFrontID }
+          - Sid: 'Allow use of the key'
+            Effect: Allow
+            Principal: 
+              Service: 
+                - cloudfront.amazonaws.com
+            Action: 
+              - 'kms:Decrypt'
+              - 'kms:Encrypt'
+              - 'kms:GenerateDataKey*'
+            Resource: '*'
+            Condition: 
+              StringEquals:
+                Aws:SourceArn:
+                  - !Join 
+                    - ''
+                    - - !Sub 'arn:aws:cloudfront::${AWS::AccountId}:distribution/'
+                      - !ImportValue CloudFrontID
       PendingWindowInDays: 7
       Tags: 
         - Key: UserName
