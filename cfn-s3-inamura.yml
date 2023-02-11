@@ -1,95 +1,118 @@
-
-https://dev.classmethod.jp/articles/cloudfront_s3_oac_setup_with_cloudformation/
-
-AWSTemplateFormatVersion: "2010-09-09"
-Description: S3&KMS Stack
-
-Parameters:
+AWSTemplateFormatVersion: '2010-09-09'
+Description: S3 Stack
 # ------------------------------------------------------------#
-# Parameters
-# ------------------------------------------------------------# 
-  BucketName:
-    Type: String
+#  Metadata
+# ------------------------------------------------------------#
+Metadata:
+  "AWS::CloudFormation::Interface":
+    ParameterGroups:
+      - Label:
+          default: "S3 Configuration"
+        Parameters:
+        - S3BucketName
+        - AccessControl
+        - BlockPublicAcls
+        - BlockPublicPolicy
+        - IgnorePublicAcls
+        - RestrictPublicBuckets
+        - ExpirationInDays
+        - EventBridgeConfiguration
+        - Prefix
+        - TagsName
 
-  IAMUserARN:
+# ------------------------------------------------------------#
+#  InputParameters
+# ------------------------------------------------------------#
+Parameters:
+  S3BucketName:
     Type: String
-
+    Default: "cfn-s3-20230211-inamura"
+    Description: Type of this BacketName.
+  VersioningConfiguration:
+    Type: String
+    Default: "Enabled"
+    Description: VersioningConfiguration.
+  AccessControl:
+    Type: String
+    Description: AccessControl.
+    Default: "Private"
+    AllowedValues: [ "Private", "PublicRead", "PublicReadWrite", "AuthenticatedRead", "LogDeliveryWrite", "BucketOwnerRead", "BucketOwnerFullControl", "AwsExecRead" ]
+  BlockPublicAcls: 
+    Type: String
+    Description: BlockPublicAcls.
+    Default: "True"
+    AllowedValues: [ "True", "False" ]
+  BlockPublicPolicy:
+    Type: String
+    Description: BlockPublicPolicy.
+    Default: "False"
+    AllowedValues: [ "True", "False" ]
+  IgnorePublicAcls:
+    Type: String
+    Description: IgnorePublicAcls.
+    Default: "True"
+    AllowedValues: [ "True", "False" ]
+  RestrictPublicBuckets:
+    Type: String
+    Description: RestrictPublicBuckets.
+    Default: "False"
+    AllowedValues: [ "True", "False" ]
+  ExpirationInDays:
+    Type: String
+    Description: Lifecycle Days.
+    Default: "7"
+  Prefix:
+    Type: String
+    Description: Lambdafunction Trigger Prefix.
+    Default: "infra"
+  TagsName:
+    Type: String
+    Description: UserName
+    Default: "inamura"
+  
+# ------------------------------------------------------------#
+#  Resources
+# ------------------------------------------------------------#
 Resources:
 # ------------------------------------------------------------#
-# KMS
-# ------------------------------------------------------------# 
-  KMS:
-    Type: AWS::KMS::Key
-    Properties: 
-      Description: OAC Test
-      Enabled: true
-      KeyPolicy: 
-        Version: '2012-10-17'
-        Statement: 
-          - Sid: Enable IAM User Permissions
-            Effect: Allow
-            Principal: 
-              AWS: !Sub arn:aws:iam::${AWS::AccountId}:root
-            Action: 'kms:*'
-            Resource: '*'
-          - Sid: 'Allow access for Key Administrators'
-            Effect: Allow
-            Principal: 
-              AWS: !Ref IAMUserARN
-            Action: 
-              - 'kms:Create*'
-              - 'kms:Describe*'
-              - 'kms:Enable*'
-              - 'kms:List*'
-              - 'kms:Put*'
-              - 'kms:Update*'
-              - 'kms:Revoke*'
-              - 'kms:Disable*'
-              - 'kms:Get*'
-              - 'kms:Delete*'
-              - 'kms:TagResource'
-              - 'kms:UntagResource'
-              - 'kms:ScheduleKeyDeletion'
-              - 'kms:CancelKeyDeletion'
-              - 'kms:CreateGrant'
-              - 'kms:ListGrants'
-              - 'kms:RevokeGrant'
-            Resource: '*'
-          - Sid: 'Allow use of the key'
-            Effect: Allow
-            Principal: 
-              AWS: !Ref IAMUserARN
-            Action: 
-              - 'kms:Encrypt'
-              - 'kms:Decrypt'
-              - 'kms:ReEncrypt*'
-              - 'kms:GenerateDataKey*'
-              - 'kms:DescribeKey'
-            Resource: '*'
-          - Sid: 'Allow use of the key'
-            Effect: Allow
-            Principal: 
-              Service: 
-                - cloudfront.amazonaws.com
-            Action: 
-              - 'kms:Decrypt'
-              - 'kms:Encrypt'
-              - 'kms:GenerateDataKey*'
-            Resource: '*'
-            Condition: 
-              StringEquals:
-                aws:SourceArn:
-                  - !Join 
-                    - ''
-                    - - !Sub 'arn:aws:cloudfront::${AWS::AccountId}:distribution/'
-                      - !ImportValue CloudFrontID
-      PendingWindowInDays: 7
-
-Outputs:
+#  S3
 # ------------------------------------------------------------#
-# Outputs
-# ------------------------------------------------------------# 
-  S3:
-    Value: !GetAtt S3.DomainName
-    Export: 
-      Name: S3
+  S3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketEncryption: 
+        ServerSideEncryptionConfiguration: 
+          - BucketKeyEnabled: true
+            ServerSideEncryptionByDefault:
+              KMSMasterKeyID: !ImportValue KMSKeyId
+              SSEAlgorithm: aws:kms
+      BucketName: !Ref S3BucketName      
+      VersioningConfiguration:
+        Status: !Ref VersioningConfiguration
+      AccessControl: !Ref AccessControl
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: !Ref BlockPublicAcls
+        BlockPublicPolicy: !Ref BlockPublicPolicy
+        IgnorePublicAcls: !Ref IgnorePublicAcls
+        RestrictPublicBuckets: !Ref RestrictPublicBuckets
+      LifecycleConfiguration:
+        Rules:
+          - Id: LifeCycleRule
+            Status: Enabled
+            ExpirationInDays: !Ref ExpirationInDays
+      VersioningConfiguration:
+        Status: Enabled
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: 404.html
+      Tags:
+        - Key: "User"
+          Value: !Ref TagsName
+# ------------------------------------------------------------#
+#  Outputs
+# ------------------------------------------------------------#
+Outputs:
+  S3BucketName:
+    Value: !Ref S3Bucket
+    Export:
+      Name: cfn-s3-BucketName
