@@ -9,8 +9,8 @@ Metadata:
       - Label:
           default: "KMS Configuration"
         Parameters:
-        - S3BucketName
-        - AccessControl
+        - KMSId
+        - UserName
 # ------------------------------------------------------------#
 #  InputParameters
 # ------------------------------------------------------------#
