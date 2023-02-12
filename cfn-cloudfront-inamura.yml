@@ -13,7 +13,6 @@ Metadata:
       - Label:
           default: "CloudFront Configuration"
         Parameters:
-
         - TagsName
 # ------------------------------------------------------------#
 #  InputParameters
@@ -47,6 +46,8 @@ Resources:
     Type: AWS::CloudFront::Distribution
     Properties: 
       DistributionConfig:
+        Comment: "CloudFront-S3 URL"
+        DefaultRootObject: index.html
         DefaultCacheBehavior: 
           AllowedMethods:
             - GET
