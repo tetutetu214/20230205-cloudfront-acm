@@ -17,7 +17,6 @@ Metadata:
         - RestrictPublicBuckets
         - ExpirationInDays
         - EventBridgeConfiguration
-        - Prefix
         - TagsName
 
 # ------------------------------------------------------------#
@@ -45,7 +44,7 @@ Parameters:
   BlockPublicPolicy:
     Type: String
     Description: BlockPublicPolicy.
-    Default: "False"
+    Default: "True"
     AllowedValues: [ "True", "False" ]
   IgnorePublicAcls:
     Type: String
@@ -55,16 +54,12 @@ Parameters:
   RestrictPublicBuckets:
     Type: String
     Description: RestrictPublicBuckets.
-    Default: "False"
+    Default: "True"
     AllowedValues: [ "True", "False" ]
   ExpirationInDays:
     Type: String
     Description: Lifecycle Days.
     Default: "7"
-  Prefix:
-    Type: String
-    Description: Lambdafunction Trigger Prefix.
-    Default: "infra"
   TagsName:
     Type: String
     Description: UserName
@@ -80,12 +75,12 @@ Resources:
   S3Bucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketEncryption: 
-        ServerSideEncryptionConfiguration: 
-          - BucketKeyEnabled: true
-            ServerSideEncryptionByDefault:
-              KMSMasterKeyID: !ImportValue KMSKeyId
-              SSEAlgorithm: aws:kms
+      # BucketEncryption: 
+      #   ServerSideEncryptionConfiguration: 
+      #     - BucketKeyEnabled: true
+      #       ServerSideEncryptionByDefault:
+      #         KMSMasterKeyID: !ImportValue KMSKeyId
+      #         SSEAlgorithm: aws:kms
       BucketName: !Ref S3BucketName      
       VersioningConfiguration:
         Status: !Ref VersioningConfiguration
@@ -109,29 +104,31 @@ Resources:
         - Key: "User"
           Value: !Ref TagsName
 
-  S3BucketPolicy:
-    Type: AWS::S3::BucketPolicy
-    Properties: 
-      Bucket: !Ref S3Bucket
-      PolicyDocument: 
-        Version: "2008-10-17"
-        Statement: 
-          - Sid: "AllowCloudFrontServicePrincipal"
-            Effect: "Allow"
-            Principal: 
-              Service: 
-                - "cloudfront.amazonaws.com"
-            Action: 
-              - "s3:GetObject"
-            Resource: 
-              - !Sub ${S3Bucket.Arn}/*
-            Condition: 
-              StringEquals:
-                AWS:SourceArn: 
-                  - !Join 
-                    - ''
-                    - - !Sub 'arn:aws:cloudfront::${AWS::AccountId}:distribution/'
-                      - !ImportValue CloudFrontID
+  # S3BucketPolicy:
+  #   Type: AWS::S3::BucketPolicy
+  #   Properties: 
+  #     Bucket: !Ref S3Bucket
+  #     PolicyDocument: 
+  #       Version: "2008-10-17"
+  #       Statement: 
+  #         - Sid: "AllowCloudFrontServicePrincipal"
+  #           Effect: "Allow"
+  #           Principal: 
+  #             Service: 
+  #               - "cloudfront.amazonaws.com"
+  #           Action: 
+  #             - "s3:GetObject"
+  #           Resource: 
+  #             - !Sub ${S3Bucket.Arn}/*
+  #           Condition: 
+  #             StringEquals:
+  #               AWS:SourceArn: 
+  #                 - !Join 
+  #                   - ''
+  #                   - - !Sub 'arn:aws:cloudfront::${AWS::AccountId}:distribution/'
+  #                     - !ImportValue CloudFrontID
+
+
 # ------------------------------------------------------------#
 #  Outputs
 # ------------------------------------------------------------#
